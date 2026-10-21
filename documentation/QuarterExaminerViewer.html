@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuarterExaminerViewer</title>
+<style>
+:root { --bg:#ffffff; --fg:#1d2330; --muted:#5b6578; --accent:#1f5fbf;
+        --code-bg:#f2f4f8; --border:#d8dde6; --head:#eef2f9; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171d; --fg:#e3e7ee; --muted:#9aa4b5; --accent:#6aa5ff;
+          --code-bg:#1d222b; --border:#2c3340; --head:#1b2230; }
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.55 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif; }
+.layout { display:flex; max-width:1100px; margin:0 auto; }
+nav { position:sticky; top:0; align-self:flex-start; width:230px; padding:28px 20px;
+      height:100vh; overflow:auto; border-right:1px solid var(--border); flex:none; }
+nav h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em;
+         color:var(--muted); margin:0 0 10px; }
+nav a { display:block; padding:3px 0; color:var(--fg); text-decoration:none; font-size:14px; }
+nav a:hover { color:var(--accent); }
+main { padding:32px 40px 80px; min-width:0; flex:1; }
+header h1 { margin:0; font-size:34px; }
+header p { margin:4px 0 0; color:var(--muted); }
+h2.sec { margin:44px 0 12px; padding-bottom:6px; font-size:24px; border-bottom:1px solid var(--border); }
+h3 { margin:26px 0 8px; font-size:18px; }
+code { font:0.9em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+       background:var(--code-bg); padding:1px 5px; border-radius:4px; }
+pre { background:var(--code-bg); border:1px solid var(--border); border-radius:6px;
+      padding:14px 16px; overflow:auto; line-height:1.4; }
+pre code { background:none; padding:0; font-size:13.5px; }
+table { border-collapse:collapse; width:100%; margin:12px 0; font-size:15px; }
+th, td { border:1px solid var(--border); padding:7px 11px; text-align:left; vertical-align:top; }
+th { background:var(--head); }
+.api { margin:14px 0; padding:10px 0 10px 16px; border-left:3px solid var(--accent); }
+.api .sig { display:block; font:14px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+            background:none; padding:0; font-weight:600; word-break:break-word; }
+.api p { margin:6px 0 0; }
+footer { margin-top:60px; color:var(--muted); font-size:13px; }
+@media (max-width:800px) { nav { display:none; } main { padding:24px 18px; } }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav><h2>Contents</h2>
+<a href="#overview">Overview</a>
+<a href="#synopsis">Synopsis</a>
+<a href="#quick-start">Quick start</a>
+<a href="#viewer-decoration">Viewer decoration</a>
+<a href="#mouse-and-keyboard">Mouse and keyboard</a>
+<a href="#popup-menu-and-preferences">Popup menu and preferences</a>
+<a href="#enumerations">Enumerations</a>
+<a href="#public-functions">Public functions</a>
+<a href="#public-slots">Public slots</a>
+<a href="#signals">Signals</a>
+<a href="#protected-functions">Protected functions</a>
+<a href="#notes">Notes</a>
+<a href="#files">Files</a>
+<a href="#see-also">See also</a>
+</nav>
+<main>
+<header><h1>QuarterExaminerViewer</h1><p>An SoQtExaminerViewer-style viewer for Coin3D, built on Quarter</p></header>
+<h2 class="sec" id="overview">Overview</h2>
+<p><code>QuarterExaminerViewer</code> is a Qt widget that gives applications built on the Quarter library the look, feel and functionality of the classic <code>SoQtExaminerViewer</code>. Quarter supplies the OpenGL canvas; <code>QuarterExaminerViewer</code> adds the viewer decoration (buttons and thumbwheels), mouse navigation, a popup menu, a preferences dialog, an animated seek function, a home position and perspective/orthographic camera switching.</p>
+<p>The class derives from <code>QWidget</code>, so it can be used as a top-level window or embedded in any layout. The underlying <code>QuarterWidget</code> is available through <code>quarterWidget()</code> for anything the class does not wrap.</p>
+<h3>Defaults</h3>
+<ul>
+<li>Starts in View mode (the mouse navigates the camera).</li>
+<li>Headlight on; black background; decoration visible.</li>
+<li>Seek: 2.0 seconds, 50 % of the current distance, seeks to the picked point.</li>
+<li>Right-click popup menu enabled.</li>
+<li>Default window size 640 x 520 pixels.</li>
+</ul>
+<h2 class="sec" id="synopsis">Synopsis</h2>
+<pre><code>#include &quot;QuarterExaminerViewer.h&quot;
+
+class QuarterExaminerViewer : public QWidget
+{
+    Q_OBJECT
+public:
+    enum CameraType { Perspective, Orthographic };
+    enum DrawStyle  { AsIs, Wireframe, WireframeOverlay,
+                      HiddenLine, Points, BoundingBox };
+
+    explicit QuarterExaminerViewer(QWidget* parent = nullptr);
+    ~QuarterExaminerViewer();
+    ...
+};</code></pre>
+<h2 class="sec" id="quick-start">Quick start</h2>
+<pre><code>#include &lt;QApplication&gt;
+#include &lt;Quarter/Quarter.h&gt;
+#include &lt;Inventor/nodes/SoCone.h&gt;
+#include &lt;Inventor/nodes/SoMaterial.h&gt;
+#include &lt;Inventor/nodes/SoSeparator.h&gt;
+#include &quot;QuarterExaminerViewer.h&quot;
+
+int main(int argc, char** argv)
+{
+    QApplication app(argc, argv);
+    SIM::Coin3D::Quarter::Quarter::init();    // after QApplication
+
+    SoSeparator* root = new SoSeparator;
+    root-&gt;ref();
+    SoMaterial* mat = new SoMaterial;
+    mat-&gt;diffuseColor.setValue(1.0f, 0.0f, 0.0f);
+    root-&gt;addChild(mat);
+    root-&gt;addChild(new SoCone);               // no camera: the viewer adds one
+
+    {
+        QuarterExaminerViewer viewer;
+        viewer.setSceneGraph(root);
+        viewer.show();
+        app.exec();
+    }   // the viewer must be destroyed before Quarter::clean()
+
+    root-&gt;unref();
+    SIM::Coin3D::Quarter::Quarter::clean();
+    return 0;
+}</code></pre>
+<h3>Building</h3>
+<p>The supplied <code>CMakeLists.txt</code> builds a static library <code>quarterexaminerviewer</code> and the <code>hello_cone</code> test program. Link your own targets against the library to inherit the include path and the Qt, Coin, Quarter and OpenGL dependencies:</p>
+<pre><code>target_link_libraries(myapp PRIVATE quarterexaminerviewer)</code></pre>
+<p>If Quarter and Coin are not found automatically, pass <code>-DQUARTER_ROOT=&lt;prefix&gt;</code> and <code>-DCOIN_ROOT=&lt;prefix&gt;</code>, or the directories containing their CMake config files. Set <code>-DQUARTER_QT_MAJOR=5</code> or <code>6</code> if Qt auto-detection chooses a version different from the one Quarter was built with.</p>
+<h2 class="sec" id="viewer-decoration">Viewer decoration</h2>
+<h3>Buttons (left strip)</h3>
+<table><thead><tr><th>Button</th><th>Function</th></tr></thead><tbody>
+<tr><td>Pick</td><td>Pick mode: mouse events go to the scene graph (for manipulators, selection, etc.). Arrow cursor.</td></tr>
+<tr><td>View</td><td>View mode: the mouse navigates the camera. Hand cursor.</td></tr>
+<tr><td>Home</td><td>Return to the stored home viewpoint.</td></tr>
+<tr><td>Set Home</td><td>Store the current viewpoint as the home viewpoint.</td></tr>
+<tr><td>View All</td><td>Fit the whole scene in the window.</td></tr>
+<tr><td>Seek</td><td>Fly to an object: press, then left-click the target.</td></tr>
+<tr><td>Camera</td><td>Switch between perspective and orthographic camera. The icon shows the type that a click switches to.</td></tr>
+</tbody></table>
+<h3>Thumbwheels</h3>
+<table><thead><tr><th>Wheel</th><th>Location</th><th>Function</th></tr></thead><tbody>
+<tr><td>Rotx</td><td>Left strip, bottom</td><td>Orbit the camera about its horizontal axis.</td></tr>
+<tr><td>Roty</td><td>Bottom strip</td><td>Orbit the camera about its vertical axis.</td></tr>
+<tr><td>Dolly</td><td>Right strip</td><td>Move the camera towards or away from the scene (or change the view height for an orthographic camera).</td></tr>
+</tbody></table>
+<p>All rotations are about the camera&#x27;s focal point. The decoration can be hidden with <code>setDecoration(false)</code> or the popup menu.</p>
+<h2 class="sec" id="mouse-and-keyboard">Mouse and keyboard</h2>
+<h3>View mode</h3>
+<table><thead><tr><th>Input</th><th>Action</th></tr></thead><tbody>
+<tr><td>Left drag</td><td>Rotate (orbit about the focal point)</td></tr>
+<tr><td>Middle drag</td><td>Pan</td></tr>
+<tr><td>Ctrl + left drag</td><td>Pan</td></tr>
+<tr><td>Ctrl + middle drag</td><td>Zoom</td></tr>
+<tr><td>Shift + left drag</td><td>Zoom</td></tr>
+<tr><td>Mouse wheel</td><td>Zoom (wheel up = closer)</td></tr>
+<tr><td>Right click</td><td>Popup menu</td></tr>
+</tbody></table>
+<h3>Keyboard</h3>
+<table><thead><tr><th>Key</th><th>Action</th></tr></thead><tbody>
+<tr><td>Esc</td><td>Toggle between Pick and View mode</td></tr>
+</tbody></table>
+<p>In Pick mode the mouse events are passed on to Quarter and the scene graph; only the right-click popup menu and the Esc key remain handled by the viewer. The mouse cursor over the canvas is an open hand in View mode (closed while dragging), an arrow in Pick mode and a crosshair while a seek is armed.</p>
+<h2 class="sec" id="popup-menu-and-preferences">Popup menu and preferences</h2>
+<h3>Popup menu (right click)</h3>
+<ul>
+<li><code>Functions</code>: Home, Set Home, View All, Seek.</li>
+<li><code>Viewing</code>: toggle View / Pick mode.</li>
+<li><code>Draw Style</code>: As is, Wireframe, Wireframe overlay, Hidden line, Points, Bounding box.</li>
+<li><code>Transparency Type</code>: None, Screen door, Add, Delayed add, Sorted object add, Blend, Delayed blend, Sorted object blend.</li>
+<li><code>Orthographic Camera</code>: toggle camera type.</li>
+<li><code>Headlight</code>, <code>Decoration</code>: toggles.</li>
+<li><code>Preferences...</code>: opens the preferences dialog.</li>
+</ul>
+<h3>Preferences dialog</h3>
+<table><thead><tr><th>Setting</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>Seek animation time</td><td>Duration of the seek flight in seconds (0 = jump immediately).</td></tr>
+<tr><td>Seek distance</td><td>Percentage of the current camera-to-target distance kept after a seek (default 50 %). For an orthographic camera this scales the view height.</td></tr>
+<tr><td>Seek to</td><td><code>Picked point</code> or <code>Object center</code> (center of the picked object&#x27;s bounding box).</td></tr>
+<tr><td>Camera zoom</td><td>Field of view of a perspective camera in degrees (disabled for an orthographic camera).</td></tr>
+<tr><td>Background color</td><td>Opens a color chooser.</td></tr>
+<tr><td>Transparency type</td><td>Quarter transparency mode.</td></tr>
+<tr><td>Headlight</td><td>Enable or disable the headlight.</td></tr>
+</tbody></table>
+<p>Changes take effect immediately; the dialog only has a Close button.</p>
+<h2 class="sec" id="enumerations">Enumerations</h2>
+<div class="api"><code class="sig">enum CameraType { Perspective, Orthographic }</code><p>The camera projection. Used by <code>cameraType()</code> and <code>setCameraType()</code>.</p></div>
+<div class="api"><code class="sig">enum DrawStyle { AsIs, Wireframe, WireframeOverlay, HiddenLine, Points, BoundingBox }</code><p>How the scene is rendered. Maps onto Quarter&#x27;s render modes.</p></div>
+<h2 class="sec" id="public-functions">Public functions</h2>
+<h3>Construction</h3>
+<div class="api"><code class="sig">explicit QuarterExaminerViewer(QWidget* parent = nullptr)</code><p>Creates the viewer: a <code>QuarterWidget</code> surrounded by the decoration. Quarter must already have been initialized with <code>Quarter::init()</code>, which in turn requires an existing <code>QApplication</code>.</p></div>
+<div class="api"><code class="sig">~QuarterExaminerViewer()</code><p>Detaches the scene graph from Quarter and releases the viewer&#x27;s references. The viewer must be destroyed before <code>Quarter::clean()</code> is called.</p></div>
+<h3>Scene graph and camera</h3>
+<div class="api"><code class="sig">void setSceneGraph(SoNode* scene)</code><p>Sets the scene to display. The viewer takes its own reference on <code>scene</code>, so the caller keeps (and must eventually release) its own. Any previous scene is released; passing <code>nullptr</code> clears the viewer.</p><p>If the scene contains no <code>SoCamera</code>, the viewer creates an <code>SoPerspectiveCamera</code>, places it ahead of the scene, fits it to the scene when the window is first shown and stores that view as the home position. If the scene already contains a camera, it is used unchanged and its current state is stored as the home position.</p></div>
+<div class="api"><code class="sig">SoNode* getSceneGraph() const</code><p>Returns the scene passed to <code>setSceneGraph()</code>, or <code>nullptr</code>.</p></div>
+<div class="api"><code class="sig">SoCamera* getCamera() const</code><p>Returns the camera in use (the viewer&#x27;s own or the scene&#x27;s), or <code>nullptr</code> if no scene is set. Use it to apply changes to the camera directly. The pointer changes when the camera type is switched, so do not cache it across <code>setCameraType()</code> / <code>toggleCameraType()</code>; connect to <code>cameraTypeChanged()</code> to be told when that happens. After modifying the camera yourself, call <code>viewAll()</code> and/or <code>saveHomePosition()</code> as needed.</p></div>
+<div class="api"><code class="sig">SIM::Coin3D::Quarter::QuarterWidget* quarterWidget() const</code><p>Returns the wrapped Quarter widget for functionality not exposed here.</p></div>
+<h3>State queries</h3>
+<div class="api"><code class="sig">bool isViewing() const</code><p>True in View mode, false in Pick mode.</p></div>
+<div class="api"><code class="sig">bool isHeadlight() const</code><p>True if the headlight is enabled.</p></div>
+<div class="api"><code class="sig">bool isDecoration() const</code><p>True if the buttons and thumbwheels are shown.</p></div>
+<div class="api"><code class="sig">CameraType cameraType() const</code><p>The current camera projection.</p></div>
+<div class="api"><code class="sig">DrawStyle drawStyle() const</code><p>The current draw style.</p></div>
+<div class="api"><code class="sig">QColor backgroundColor() const</code><p>The current background color.</p></div>
+<h3>Seek settings and popup menu</h3>
+<div class="api"><code class="sig">void setSeekTime(double seconds)</code><p>Duration of the seek animation. 0 jumps immediately. Default 2.0.</p></div>
+<div class="api"><code class="sig">double seekTime() const</code><p>Returns the seek time.</p></div>
+<div class="api"><code class="sig">void setSeekDistance(float percent)</code><p>Percentage of the distance to the target that remains after a seek. Default 50.</p></div>
+<div class="api"><code class="sig">float seekDistance() const</code><p>Returns the seek distance.</p></div>
+<div class="api"><code class="sig">void setSeekToObject(bool on)</code><p>If true, seek to the center of the picked object&#x27;s bounding box instead of the picked point. Default false.</p></div>
+<div class="api"><code class="sig">bool isSeekToObject() const</code><p>Returns the seek target setting.</p></div>
+<div class="api"><code class="sig">void setPopupMenuEnabled(bool on)</code><p>Enables or disables the right-click popup menu.</p></div>
+<div class="api"><code class="sig">bool isPopupMenuEnabled() const</code><p>Returns whether the popup menu is enabled.</p></div>
+<h2 class="sec" id="public-slots">Public slots</h2>
+<div class="api"><code class="sig">void viewAll()</code><p>Fits the whole scene in the window. Does nothing without a camera.</p></div>
+<div class="api"><code class="sig">void saveHomePosition()</code><p>Stores the current camera position, orientation, focal distance and view size as home.</p></div>
+<div class="api"><code class="sig">void resetToHomePosition()</code><p>Restores the stored home viewpoint and cancels any seek animation.</p></div>
+<div class="api"><code class="sig">void seek()</code><p>Arms seek: the next left click on the canvas picks a target and the camera flies to it. A click on the background does nothing.</p></div>
+<div class="api"><code class="sig">void setViewing(bool viewing)</code><p>Selects View mode (true) or Pick mode (false). Updates the buttons and cursor and emits <code>viewingChanged()</code>.</p></div>
+<div class="api"><code class="sig">void setHeadlight(bool on)</code><p>Enables or disables the headlight, which always shines along the viewing direction.</p></div>
+<div class="api"><code class="sig">void setDecoration(bool on)</code><p>Shows or hides the buttons and thumbwheels.</p></div>
+<div class="api"><code class="sig">void setCameraType(CameraType type)</code><p>Switches the projection by replacing the camera node in the scene graph, preserving position, orientation and apparent size. Emits <code>cameraTypeChanged()</code>. Does nothing if the camera cannot be replaced (for example if its parent is not a group node).</p></div>
+<div class="api"><code class="sig">void toggleCameraType()</code><p>Switches between perspective and orthographic.</p></div>
+<div class="api"><code class="sig">void setDrawStyle(DrawStyle style)</code><p>Sets the render style.</p></div>
+<div class="api"><code class="sig">void setBackgroundColor(const QColor&amp; color)</code><p>Sets the background color.</p></div>
+<div class="api"><code class="sig">void showPreferences()</code><p>Shows the modal preferences dialog.</p></div>
+<h2 class="sec" id="signals">Signals</h2>
+<div class="api"><code class="sig">void viewingChanged(bool viewing)</code><p>Emitted when the Pick/View mode changes.</p></div>
+<div class="api"><code class="sig">void cameraTypeChanged(QuarterExaminerViewer::CameraType type)</code><p>Emitted after the camera node has been replaced. Call <code>getCamera()</code> again to obtain the new camera.</p></div>
+<h2 class="sec" id="protected-functions">Protected functions</h2>
+<div class="api"><code class="sig">bool eventFilter(QObject* obj, QEvent* ev) override</code><p>Filters events of the Quarter canvas to implement mouse navigation, seek picking, the popup menu and the Esc key. Reimplement and call the base implementation to add custom handling.</p></div>
+<div class="api"><code class="sig">void showEvent(QShowEvent* ev) override</code><p>Performs the initial fit of a viewer-created camera once the viewport size is known.</p></div>
+<h2 class="sec" id="notes">Notes</h2>
+<h3>Lighting</h3>
+<p>The headlight is separate from the scene graph and always follows the camera. A light node inside the scene (for example the <code>SoDirectionalLight</code> in the Inventor Mentor &quot;Hello, Cone&quot; example) is fixed in world space and therefore appears to turn with the object when you orbit. Omit scene lights and use the headlight if you want the light to follow the view.</p>
+<h3>Camera ownership</h3>
+<p>A camera created by the viewer is part of the viewer&#x27;s private root node, not of your scene graph; your scene is not modified. A camera that is part of your scene is used and modified in place.</p>
+<h3>Lifetime</h3>
+<p>The viewer holds references on the scene and on its private root. Destroy the viewer before calling <code>Quarter::clean()</code>, and release your own scene reference after the viewer is gone or at any time after <code>setSceneGraph()</code> if you no longer need the scene.</p>
+<h3>Differences from SoQtExaminerViewer</h3>
+<ul>
+<li>No spin animation after releasing a drag.</li>
+<li>No stereo viewing, axes cross or help/set-up-view menu items.</li>
+<li>Navigation is implemented by the viewer, not by Quarter&#x27;s scxml navigation systems; Quarter&#x27;s own navigation is bypassed in View mode.</li>
+<li>Draw styles and transparency types are those provided by Quarter.</li>
+</ul>
+<h2 class="sec" id="files">Files</h2>
+<table><thead><tr><th>File</th><th>Contents</th></tr></thead><tbody>
+<tr><td>QuarterExaminerViewer.h / .cpp</td><td>The viewer class.</td></tr>
+<tr><td>ThumbWheel.h / .cpp</td><td>The thumbwheel widget used by the decoration (internal).</td></tr>
+<tr><td>main.cpp</td><td>&quot;Hello, Cone&quot; test program.</td></tr>
+<tr><td>CMakeLists.txt</td><td>Builds the library <code>quarterexaminerviewer</code> and <code>hello_cone</code>.</td></tr>
+</tbody></table>
+<h2 class="sec" id="see-also">See also</h2>
+<p>Quarter (QuarterWidget), Coin (SoCamera, SoRenderManager), The Inventor Mentor, <code>SoQtExaminerViewer</code>.</p>
+<footer>Generated 2026-10-19.</footer>
+</main>
+</div>
+</body>
+</html>

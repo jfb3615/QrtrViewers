@@ -1,0 +1,409 @@
+.TH QUARTEREXAMINERVIEWER 3 "2026-10-19" "QuarterExaminerViewer" "Library Functions Manual"
+.SH NAME
+QuarterExaminerViewer \- An SoQtExaminerViewer\-style viewer for Coin3D, built on Quarter
+.SH SYNOPSIS
+.nf
+.B #include \(dqQuarterExaminerViewer.h\(dq
+.sp
+.B class QuarterExaminerViewer : public QWidget
+.fi
+.SH DESCRIPTION
+.PP
+\fBQuarterExaminerViewer\fR is a Qt widget that gives applications
+built on the Quarter library the look, feel and functionality of the
+classic \fBSoQtExaminerViewer\fR. Quarter supplies the OpenGL canvas;
+\fBQuarterExaminerViewer\fR adds the viewer decoration (buttons and
+thumbwheels), mouse navigation, a popup menu, a preferences dialog, an
+animated seek function, a home position and perspective/orthographic
+camera switching.
+.PP
+The class derives from \fBQWidget\fR, so it can be used as a top\-level
+window or embedded in any layout. The underlying \fBQuarterWidget\fR is
+available through \fBquarterWidget()\fR for anything the class does not
+wrap.
+.SS Defaults
+.IP \(bu 3
+Starts in View mode (the mouse navigates the camera).
+.IP \(bu 3
+Headlight on; black background; decoration visible.
+.IP \(bu 3
+Seek: 2.0 seconds, 50 % of the current distance, seeks to the picked
+point.
+.IP \(bu 3
+Right\-click popup menu enabled.
+.IP \(bu 3
+Default window size 640 x 520 pixels.
+.SH QUICK START
+.PP
+.RS 4
+.nf
+#include <QApplication>
+#include <Quarter/Quarter.h>
+#include <Inventor/nodes/SoCone.h>
+#include <Inventor/nodes/SoMaterial.h>
+#include <Inventor/nodes/SoSeparator.h>
+#include "QuarterExaminerViewer.h"
+
+int main(int argc, char** argv)
+{
+    QApplication app(argc, argv);
+    SIM::Coin3D::Quarter::Quarter::init();    // after QApplication
+
+    SoSeparator* root = new SoSeparator;
+    root\->ref();
+    SoMaterial* mat = new SoMaterial;
+    mat\->diffuseColor.setValue(1.0f, 0.0f, 0.0f);
+    root\->addChild(mat);
+    root\->addChild(new SoCone);               // no camera: the viewer adds one
+
+    {
+        QuarterExaminerViewer viewer;
+        viewer.setSceneGraph(root);
+        viewer.show();
+        app.exec();
+    }   // the viewer must be destroyed before Quarter::clean()
+
+    root\->unref();
+    SIM::Coin3D::Quarter::Quarter::clean();
+    return 0;
+}
+.fi
+.RE
+.SS Building
+.PP
+The supplied \fBCMakeLists.txt\fR builds a static library
+\fBquarterexaminerviewer\fR and the \fBhello_cone\fR test program. Link
+your own targets against the library to inherit the include path and
+the Qt, Coin, Quarter and OpenGL dependencies:
+.PP
+.RS 4
+.nf
+target_link_libraries(myapp PRIVATE quarterexaminerviewer)
+.fi
+.RE
+.PP
+If Quarter and Coin are not found automatically, pass
+\fB\-DQUARTER_ROOT=<prefix>\fR and \fB\-DCOIN_ROOT=<prefix>\fR, or the
+directories containing their CMake config files. Set
+\fB\-DQUARTER_QT_MAJOR=5\fR or \fB6\fR if Qt auto\-detection chooses a
+version different from the one Quarter was built with.
+.SH VIEWER DECORATION
+.SS Buttons (left strip)
+.TP 18
+.B Pick
+Pick mode: mouse events go to the scene graph (for manipulators,
+selection, etc.). Arrow cursor.
+.TP 18
+.B View
+View mode: the mouse navigates the camera. Hand cursor.
+.TP 18
+.B Home
+Return to the stored home viewpoint.
+.TP 18
+.B Set Home
+Store the current viewpoint as the home viewpoint.
+.TP 18
+.B View All
+Fit the whole scene in the window.
+.TP 18
+.B Seek
+Fly to an object: press, then left\-click the target.
+.TP 18
+.B Camera
+Switch between perspective and orthographic camera. The icon shows the
+type that a click switches to.
+.SS Thumbwheels
+.TP 18
+.B Rotx
+Left strip, bottom: Orbit the camera about its horizontal axis.
+.TP 18
+.B Roty
+Bottom strip: Orbit the camera about its vertical axis.
+.TP 18
+.B Dolly
+Right strip: Move the camera towards or away from the scene (or change
+the view height for an orthographic camera).
+.PP
+All rotations are about the camera's focal point. The decoration can be
+hidden with \fBsetDecoration(false)\fR or the popup menu.
+.SH MOUSE AND KEYBOARD
+.SS View mode
+.TP 18
+.B Left drag
+Rotate (orbit about the focal point)
+.TP 18
+.B Middle drag
+Pan
+.TP 18
+.B Ctrl + left drag
+Pan
+.TP 18
+.B Ctrl + middle drag
+Zoom
+.TP 18
+.B Shift + left drag
+Zoom
+.TP 18
+.B Mouse wheel
+Zoom (wheel up = closer)
+.TP 18
+.B Right click
+Popup menu
+.SS Keyboard
+.TP 18
+.B Esc
+Toggle between Pick and View mode
+.PP
+In Pick mode the mouse events are passed on to Quarter and the scene
+graph; only the right\-click popup menu and the Esc key remain handled
+by the viewer. The mouse cursor over the canvas is an open hand in View
+mode (closed while dragging), an arrow in Pick mode and a crosshair
+while a seek is armed.
+.SH POPUP MENU AND PREFERENCES
+.SS Popup menu (right click)
+.IP \(bu 3
+\fBFunctions\fR: Home, Set Home, View All, Seek.
+.IP \(bu 3
+\fBViewing\fR: toggle View / Pick mode.
+.IP \(bu 3
+\fBDraw Style\fR: As is, Wireframe, Wireframe overlay, Hidden line,
+Points, Bounding box.
+.IP \(bu 3
+\fBTransparency Type\fR: None, Screen door, Add, Delayed add, Sorted
+object add, Blend, Delayed blend, Sorted object blend.
+.IP \(bu 3
+\fBOrthographic Camera\fR: toggle camera type.
+.IP \(bu 3
+\fBHeadlight\fR, \fBDecoration\fR: toggles.
+.IP \(bu 3
+\fBPreferences...\fR: opens the preferences dialog.
+.SS Preferences dialog
+.TP 18
+.B Seek animation time
+Duration of the seek flight in seconds (0 = jump immediately).
+.TP 18
+.B Seek distance
+Percentage of the current camera\-to\-target distance kept after a seek
+(default 50 %). For an orthographic camera this scales the view height.
+.TP 18
+.B Seek to
+\fBPicked point\fR or \fBObject center\fR (center of the picked
+object's bounding box).
+.TP 18
+.B Camera zoom
+Field of view of a perspective camera in degrees (disabled for an
+orthographic camera).
+.TP 18
+.B Background color
+Opens a color chooser.
+.TP 18
+.B Transparency type
+Quarter transparency mode.
+.TP 18
+.B Headlight
+Enable or disable the headlight.
+.PP
+Changes take effect immediately; the dialog only has a Close button.
+.SH ENUMERATIONS
+.TP
+.B enum CameraType { Perspective, Orthographic }
+The camera projection. Used by \fBcameraType()\fR and
+\fBsetCameraType()\fR.
+.TP
+.B enum DrawStyle { AsIs, Wireframe, WireframeOverlay, HiddenLine, Points, BoundingBox }
+How the scene is rendered. Maps onto Quarter's render modes.
+.SH PUBLIC FUNCTIONS
+.SS Construction
+.TP
+.B explicit QuarterExaminerViewer(QWidget* parent = nullptr)
+Creates the viewer: a \fBQuarterWidget\fR surrounded by the decoration.
+Quarter must already have been initialized with \fBQuarter::init()\fR,
+which in turn requires an existing \fBQApplication\fR.
+.TP
+.B ~QuarterExaminerViewer()
+Detaches the scene graph from Quarter and releases the viewer's
+references. The viewer must be destroyed before \fBQuarter::clean()\fR
+is called.
+.SS Scene graph and camera
+.TP
+.B void setSceneGraph(SoNode* scene)
+Sets the scene to display. The viewer takes its own reference on
+\fBscene\fR, so the caller keeps (and must eventually release) its own.
+Any previous scene is released; passing \fBnullptr\fR clears the
+viewer.
+.IP
+If the scene contains no \fBSoCamera\fR, the viewer creates an
+\fBSoPerspectiveCamera\fR, places it ahead of the scene, fits it to the
+scene when the window is first shown and stores that view as the home
+position. If the scene already contains a camera, it is used unchanged
+and its current state is stored as the home position.
+.TP
+.B SoNode* getSceneGraph() const
+Returns the scene passed to \fBsetSceneGraph()\fR, or \fBnullptr\fR.
+.TP
+.B SoCamera* getCamera() const
+Returns the camera in use (the viewer's own or the scene's), or
+\fBnullptr\fR if no scene is set. Use it to apply changes to the camera
+directly. The pointer changes when the camera type is switched, so do
+not cache it across \fBsetCameraType()\fR / \fBtoggleCameraType()\fR;
+connect to \fBcameraTypeChanged()\fR to be told when that happens.
+After modifying the camera yourself, call \fBviewAll()\fR and/or
+\fBsaveHomePosition()\fR as needed.
+.TP
+.B SIM::Coin3D::Quarter::QuarterWidget* quarterWidget() const
+Returns the wrapped Quarter widget for functionality not exposed here.
+.SS State queries
+.TP
+.B bool isViewing() const
+True in View mode, false in Pick mode.
+.TP
+.B bool isHeadlight() const
+True if the headlight is enabled.
+.TP
+.B bool isDecoration() const
+True if the buttons and thumbwheels are shown.
+.TP
+.B CameraType cameraType() const
+The current camera projection.
+.TP
+.B DrawStyle drawStyle() const
+The current draw style.
+.TP
+.B QColor backgroundColor() const
+The current background color.
+.SS Seek settings and popup menu
+.TP
+.B void setSeekTime(double seconds)
+Duration of the seek animation. 0 jumps immediately. Default 2.0.
+.TP
+.B double seekTime() const
+Returns the seek time.
+.TP
+.B void setSeekDistance(float percent)
+Percentage of the distance to the target that remains after a seek.
+Default 50.
+.TP
+.B float seekDistance() const
+Returns the seek distance.
+.TP
+.B void setSeekToObject(bool on)
+If true, seek to the center of the picked object's bounding box instead
+of the picked point. Default false.
+.TP
+.B bool isSeekToObject() const
+Returns the seek target setting.
+.TP
+.B void setPopupMenuEnabled(bool on)
+Enables or disables the right\-click popup menu.
+.TP
+.B bool isPopupMenuEnabled() const
+Returns whether the popup menu is enabled.
+.SH PUBLIC SLOTS
+.TP
+.B void viewAll()
+Fits the whole scene in the window. Does nothing without a camera.
+.TP
+.B void saveHomePosition()
+Stores the current camera position, orientation, focal distance and
+view size as home.
+.TP
+.B void resetToHomePosition()
+Restores the stored home viewpoint and cancels any seek animation.
+.TP
+.B void seek()
+Arms seek: the next left click on the canvas picks a target and the
+camera flies to it. A click on the background does nothing.
+.TP
+.B void setViewing(bool viewing)
+Selects View mode (true) or Pick mode (false). Updates the buttons and
+cursor and emits \fBviewingChanged()\fR.
+.TP
+.B void setHeadlight(bool on)
+Enables or disables the headlight, which always shines along the
+viewing direction.
+.TP
+.B void setDecoration(bool on)
+Shows or hides the buttons and thumbwheels.
+.TP
+.B void setCameraType(CameraType type)
+Switches the projection by replacing the camera node in the scene
+graph, preserving position, orientation and apparent size. Emits
+\fBcameraTypeChanged()\fR. Does nothing if the camera cannot be
+replaced (for example if its parent is not a group node).
+.TP
+.B void toggleCameraType()
+Switches between perspective and orthographic.
+.TP
+.B void setDrawStyle(DrawStyle style)
+Sets the render style.
+.TP
+.B void setBackgroundColor(const QColor& color)
+Sets the background color.
+.TP
+.B void showPreferences()
+Shows the modal preferences dialog.
+.SH SIGNALS
+.TP
+.B void viewingChanged(bool viewing)
+Emitted when the Pick/View mode changes.
+.TP
+.B void cameraTypeChanged(QuarterExaminerViewer::CameraType type)
+Emitted after the camera node has been replaced. Call \fBgetCamera()\fR
+again to obtain the new camera.
+.SH PROTECTED FUNCTIONS
+.TP
+.B bool eventFilter(QObject* obj, QEvent* ev) override
+Filters events of the Quarter canvas to implement mouse navigation,
+seek picking, the popup menu and the Esc key. Reimplement and call the
+base implementation to add custom handling.
+.TP
+.B void showEvent(QShowEvent* ev) override
+Performs the initial fit of a viewer\-created camera once the viewport
+size is known.
+.SH NOTES
+.SS Lighting
+.PP
+The headlight is separate from the scene graph and always follows the
+camera. A light node inside the scene (for example the
+\fBSoDirectionalLight\fR in the Inventor Mentor "Hello, Cone" example)
+is fixed in world space and therefore appears to turn with the object
+when you orbit. Omit scene lights and use the headlight if you want the
+light to follow the view.
+.SS Camera ownership
+.PP
+A camera created by the viewer is part of the viewer's private root
+node, not of your scene graph; your scene is not modified. A camera
+that is part of your scene is used and modified in place.
+.SS Lifetime
+.PP
+The viewer holds references on the scene and on its private root.
+Destroy the viewer before calling \fBQuarter::clean()\fR, and release
+your own scene reference after the viewer is gone or at any time after
+\fBsetSceneGraph()\fR if you no longer need the scene.
+.SS Differences from SoQtExaminerViewer
+.IP \(bu 3
+No spin animation after releasing a drag.
+.IP \(bu 3
+No stereo viewing, axes cross or help/set\-up\-view menu items.
+.IP \(bu 3
+Navigation is implemented by the viewer, not by Quarter's scxml
+navigation systems; Quarter's own navigation is bypassed in View mode.
+.IP \(bu 3
+Draw styles and transparency types are those provided by Quarter.
+.SH FILES
+.TP 18
+.B QuarterExaminerViewer.h / .cpp
+The viewer class.
+.TP 18
+.B ThumbWheel.h / .cpp
+The thumbwheel widget used by the decoration (internal).
+.TP 18
+.B main.cpp
+"Hello, Cone" test program.
+.TP 18
+.B CMakeLists.txt
+Builds the library \fBquarterexaminerviewer\fR and \fBhello_cone\fR.
+.SH SEE ALSO
+.PP
+Quarter (QuarterWidget), Coin (SoCamera, SoRenderManager), The Inventor
+Mentor, \fBSoQtExaminerViewer\fR.
