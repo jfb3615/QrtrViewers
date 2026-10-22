@@ -1,4 +1,4 @@
-.TH QUARTEREXAMINERVIEWER 3 "2026-10-19" "QuarterExaminerViewer" "Library Functions Manual"
+.TH QUARTEREXAMINERVIEWER 3 "2026-10-22" "QuarterExaminerViewer" "Library Functions Manual"
 .SH NAME
 QuarterExaminerViewer \- An SoQtExaminerViewer\-style viewer for Coin3D, built on Quarter
 .SH SYNOPSIS
@@ -154,11 +154,12 @@ Popup menu
 .B Esc
 Toggle between Pick and View mode
 .PP
-In Pick mode the mouse events are passed on to Quarter and the scene
-graph; only the right\-click popup menu and the Esc key remain handled
-by the viewer. The mouse cursor over the canvas is an open hand in View
-mode (closed while dragging), an arrow in Pick mode and a crosshair
-while a seek is armed.
+In View mode the mouse belongs to the viewer: no mouse event, hover
+included, is passed to the scene graph. In Pick mode the mouse events
+are passed on to Quarter and the scene graph; only the right\-click
+popup menu and the Esc key remain handled by the viewer. The mouse
+cursor over the canvas is an open hand in View mode (closed while
+dragging), an arrow in Pick mode and a crosshair while a seek is armed.
 .SH POPUP MENU AND PREFERENCES
 .SS Popup menu (right click)
 .IP \(bu 3
@@ -212,6 +213,16 @@ The camera projection. Used by \fBcameraType()\fR and
 .TP
 .B enum DrawStyle { AsIs, Wireframe, WireframeOverlay, HiddenLine, Points, BoundingBox }
 How the scene is rendered. Maps onto Quarter's render modes.
+.TP
+.B enum TransparencyType { NoTransparency, ScreenDoor, Add, DelayedAdd, SortedObjectAdd, Blend, DelayedBlend, SortedObjectBlend }
+How transparent objects are rendered. Maps onto Quarter's transparency
+types. \fBNoTransparency\fR ignores transparency (everything is drawn
+opaque); \fBScreenDoor\fR uses stipple patterns and needs no sorting;
+the \fBAdd\fR and \fBBlend\fR families use additive or alpha blending,
+where the \fBDelayed\fR variants draw transparent objects after the
+opaque ones and the \fBSortedObject\fR variants also sort the
+transparent objects back to front. The initial value is whatever the
+Quarter widget starts with; read it with \fBtransparencyType()\fR.
 .SH PUBLIC FUNCTIONS
 .SS Construction
 .TP
@@ -268,6 +279,13 @@ The current camera projection.
 .TP
 .B DrawStyle drawStyle() const
 The current draw style.
+.TP
+.B TransparencyType transparencyType() const
+The current transparency type. The value is read from the Quarter
+widget, so it stays correct if the widget was changed directly through
+\fBquarterWidget()\fR. If Quarter is set to a mode that has no
+\fBTransparencyType\fR equivalent, the last value set through
+\fBsetTransparencyType()\fR is returned.
 .TP
 .B QColor backgroundColor() const
 The current background color.
@@ -336,6 +354,14 @@ Switches between perspective and orthographic.
 .TP
 .B void setDrawStyle(DrawStyle style)
 Sets the render style.
+.TP
+.B void setTransparencyType(TransparencyType type)
+Sets how transparent objects are rendered. The change is applied to the
+Quarter widget immediately and is reflected in the popup menu and the
+preferences dialog. Use \fBBlend\fR for general use; use
+\fBSortedObjectBlend\fR when overlapping transparent objects must look
+correct from every direction, and \fBScreenDoor\fR when sorting is too
+costly or alpha blending is not available.
 .TP
 .B void setBackgroundColor(const QColor& color)
 Sets the background color.

@@ -83,6 +83,9 @@ public:
     enum CameraType { Perspective, Orthographic };
     enum DrawStyle  { AsIs, Wireframe, WireframeOverlay,
                       HiddenLine, Points, BoundingBox };
+    enum TransparencyType { NoTransparency, ScreenDoor, Add, DelayedAdd,
+                            SortedObjectAdd, Blend, DelayedBlend,
+                            SortedObjectBlend };
 
     explicit QuarterExaminerViewer(QWidget* parent = nullptr);
     ~QuarterExaminerViewer();
@@ -156,7 +159,7 @@ int main(int argc, char** argv)
 <table><thead><tr><th>Key</th><th>Action</th></tr></thead><tbody>
 <tr><td>Esc</td><td>Toggle between Pick and View mode</td></tr>
 </tbody></table>
-<p>In Pick mode the mouse events are passed on to Quarter and the scene graph; only the right-click popup menu and the Esc key remain handled by the viewer. The mouse cursor over the canvas is an open hand in View mode (closed while dragging), an arrow in Pick mode and a crosshair while a seek is armed.</p>
+<p>In View mode the mouse belongs to the viewer: no mouse event, hover included, is passed to the scene graph. In Pick mode the mouse events are passed on to Quarter and the scene graph; only the right-click popup menu and the Esc key remain handled by the viewer. The mouse cursor over the canvas is an open hand in View mode (closed while dragging), an arrow in Pick mode and a crosshair while a seek is armed.</p>
 <h2 class="sec" id="popup-menu-and-preferences">Popup menu and preferences</h2>
 <h3>Popup menu (right click)</h3>
 <ul>
@@ -182,6 +185,7 @@ int main(int argc, char** argv)
 <h2 class="sec" id="enumerations">Enumerations</h2>
 <div class="api"><code class="sig">enum CameraType { Perspective, Orthographic }</code><p>The camera projection. Used by <code>cameraType()</code> and <code>setCameraType()</code>.</p></div>
 <div class="api"><code class="sig">enum DrawStyle { AsIs, Wireframe, WireframeOverlay, HiddenLine, Points, BoundingBox }</code><p>How the scene is rendered. Maps onto Quarter&#x27;s render modes.</p></div>
+<div class="api"><code class="sig">enum TransparencyType { NoTransparency, ScreenDoor, Add, DelayedAdd, SortedObjectAdd, Blend, DelayedBlend, SortedObjectBlend }</code><p>How transparent objects are rendered. Maps onto Quarter&#x27;s transparency types. <code>NoTransparency</code> ignores transparency (everything is drawn opaque); <code>ScreenDoor</code> uses stipple patterns and needs no sorting; the <code>Add</code> and <code>Blend</code> families use additive or alpha blending, where the <code>Delayed</code> variants draw transparent objects after the opaque ones and the <code>SortedObject</code> variants also sort the transparent objects back to front. The initial value is whatever the Quarter widget starts with; read it with <code>transparencyType()</code>.</p></div>
 <h2 class="sec" id="public-functions">Public functions</h2>
 <h3>Construction</h3>
 <div class="api"><code class="sig">explicit QuarterExaminerViewer(QWidget* parent = nullptr)</code><p>Creates the viewer: a <code>QuarterWidget</code> surrounded by the decoration. Quarter must already have been initialized with <code>Quarter::init()</code>, which in turn requires an existing <code>QApplication</code>.</p></div>
@@ -197,6 +201,7 @@ int main(int argc, char** argv)
 <div class="api"><code class="sig">bool isDecoration() const</code><p>True if the buttons and thumbwheels are shown.</p></div>
 <div class="api"><code class="sig">CameraType cameraType() const</code><p>The current camera projection.</p></div>
 <div class="api"><code class="sig">DrawStyle drawStyle() const</code><p>The current draw style.</p></div>
+<div class="api"><code class="sig">TransparencyType transparencyType() const</code><p>The current transparency type. The value is read from the Quarter widget, so it stays correct if the widget was changed directly through <code>quarterWidget()</code>. If Quarter is set to a mode that has no <code>TransparencyType</code> equivalent, the last value set through <code>setTransparencyType()</code> is returned.</p></div>
 <div class="api"><code class="sig">QColor backgroundColor() const</code><p>The current background color.</p></div>
 <h3>Seek settings and popup menu</h3>
 <div class="api"><code class="sig">void setSeekTime(double seconds)</code><p>Duration of the seek animation. 0 jumps immediately. Default 2.0.</p></div>
@@ -218,6 +223,7 @@ int main(int argc, char** argv)
 <div class="api"><code class="sig">void setCameraType(CameraType type)</code><p>Switches the projection by replacing the camera node in the scene graph, preserving position, orientation and apparent size. Emits <code>cameraTypeChanged()</code>. Does nothing if the camera cannot be replaced (for example if its parent is not a group node).</p></div>
 <div class="api"><code class="sig">void toggleCameraType()</code><p>Switches between perspective and orthographic.</p></div>
 <div class="api"><code class="sig">void setDrawStyle(DrawStyle style)</code><p>Sets the render style.</p></div>
+<div class="api"><code class="sig">void setTransparencyType(TransparencyType type)</code><p>Sets how transparent objects are rendered. The change is applied to the Quarter widget immediately and is reflected in the popup menu and the preferences dialog. Use <code>Blend</code> for general use; use <code>SortedObjectBlend</code> when overlapping transparent objects must look correct from every direction, and <code>ScreenDoor</code> when sorting is too costly or alpha blending is not available.</p></div>
 <div class="api"><code class="sig">void setBackgroundColor(const QColor&amp; color)</code><p>Sets the background color.</p></div>
 <div class="api"><code class="sig">void showPreferences()</code><p>Shows the modal preferences dialog.</p></div>
 <h2 class="sec" id="signals">Signals</h2>
@@ -249,7 +255,7 @@ int main(int argc, char** argv)
 </tbody></table>
 <h2 class="sec" id="see-also">See also</h2>
 <p>Quarter (QuarterWidget), Coin (SoCamera, SoRenderManager), The Inventor Mentor, <code>SoQtExaminerViewer</code>.</p>
-<footer>Generated 2026-10-19.</footer>
+<footer>Generated 2026-10-22.</footer>
 </main>
 </div>
 </body>

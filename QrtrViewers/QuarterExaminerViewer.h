@@ -68,6 +68,19 @@ public:
         BoundingBox
     };
 
+    // How transparent objects are rendered (maps onto Quarter's transparency
+    // types).  transparencyType() reports the value Quarter starts with.
+    enum TransparencyType {
+        NoTransparency,        // transparency ignored; everything is opaque
+        ScreenDoor,            // stipple patterns; no sorting needed
+        Add,
+        DelayedAdd,
+        SortedObjectAdd,
+        Blend,
+        DelayedBlend,
+        SortedObjectBlend
+    };
+
     explicit QuarterExaminerViewer(QWidget* parent = nullptr);
     ~QuarterExaminerViewer() override;
 
@@ -87,6 +100,7 @@ public:
     bool       isDecoration() const { return m_decoration; }
     CameraType cameraType() const;
     DrawStyle  drawStyle() const { return m_drawStyle; }
+    TransparencyType transparencyType() const;
     QColor     backgroundColor() const { return m_background; }
 
     // ---- seek settings (see also Preferences dialog) -------------------------
@@ -112,6 +126,7 @@ public slots:
     void setCameraType(CameraType type);
     void toggleCameraType();
     void setDrawStyle(DrawStyle style);
+    void setTransparencyType(TransparencyType type);
     void setBackgroundColor(const QColor& color);
 
     void showPreferences();
@@ -219,6 +234,7 @@ private:
 
     // misc state
     DrawStyle m_drawStyle = AsIs;
+    TransparencyType m_transparency = Blend;   // last value set through this class
     QColor    m_background = QColor(0, 0, 0);
     bool      m_decoration = true;
     bool      m_popupEnabled = true;

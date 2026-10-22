@@ -719,6 +719,47 @@ void QuarterExaminerViewer::setDecoration(bool on)
     m_bottomStrip->setVisible(on);
 }
 
+namespace {
+struct TranspEntry {
+    const char* name;                              // shown in menu / dialog
+    QuarterExaminerViewer::TransparencyType type;  // this class
+    QuarterWidget::TransparencyType quarter;       // Quarter
+};
+const TranspEntry kTransparency[] = {
+    { "None",                QuarterExaminerViewer::NoTransparency,   QuarterWidget::NONE },
+    { "Screen door",         QuarterExaminerViewer::ScreenDoor,       QuarterWidget::SCREEN_DOOR },
+    { "Add",                 QuarterExaminerViewer::Add,              QuarterWidget::ADD },
+    { "Delayed add",         QuarterExaminerViewer::DelayedAdd,       QuarterWidget::DELAYED_ADD },
+    { "Sorted object add",   QuarterExaminerViewer::SortedObjectAdd,  QuarterWidget::SORTED_OBJECT_ADD },
+    { "Blend",               QuarterExaminerViewer::Blend,            QuarterWidget::BLEND },
+    { "Delayed blend",       QuarterExaminerViewer::DelayedBlend,     QuarterWidget::DELAYED_BLEND },
+    { "Sorted object blend", QuarterExaminerViewer::SortedObjectBlend, QuarterWidget::SORTED_OBJECT_BLEND },
+};
+} // namespace
+
+void QuarterExaminerViewer::setTransparencyType(TransparencyType type)
+{
+    for (const TranspEntry& e : kTransparency) {
+        if (e.type == type) {
+            m_transparency = type;
+            m_quarter->setTransparencyType(e.quarter);
+            return;
+        }
+    }
+}
+
+QuarterExaminerViewer::TransparencyType QuarterExaminerViewer::transparencyType() const
+{
+    // Ask Quarter, so the answer stays right if the QuarterWidget was changed
+    // directly.  A Quarter type this class has no name for (a newer sorted-
+    // triangle mode, say) reports the last value set through this class.
+    const QuarterWidget::TransparencyType current = m_quarter->transparencyType();
+    for (const TranspEntry& e : kTransparency)
+        if (e.quarter == current)
+            return e.type;
+    return m_transparency;
+}
+
 void QuarterExaminerViewer::setDrawStyle(DrawStyle style)
 {
     m_drawStyle = style;
@@ -1083,20 +1124,6 @@ bool QuarterExaminerViewer::eventFilter(QObject* obj, QEvent* ev)
 // Popup menu
 // =============================================================================
 
-namespace {
-struct TranspEntry { const char* name; QuarterWidget::TransparencyType type; };
-const TranspEntry kTransparency[] = {
-    { "None",                 QuarterWidget::NONE },
-    { "Screen door",          QuarterWidget::SCREEN_DOOR },
-    { "Add",                  QuarterWidget::ADD },
-    { "Delayed add",          QuarterWidget::DELAYED_ADD },
-    { "Sorted object add",    QuarterWidget::SORTED_OBJECT_ADD },
-    { "Blend",                QuarterWidget::BLEND },
-    { "Delayed blend",        QuarterWidget::DELAYED_BLEND },
-    { "Sorted object blend",  QuarterWidget::SORTED_OBJECT_BLEND },
-};
-} // namespace
-
 void QuarterExaminerViewer::showPopupMenu(const QPoint& globalPos)
 {
     QMenu menu(this);
@@ -1141,14 +1168,14 @@ void QuarterExaminerViewer::showPopupMenu(const QPoint& globalPos)
     QMenu* tr_ = menu.addMenu(tr("Transparency Type"));
     {
         auto* group = new QActionGroup(tr_);
-        const QuarterWidget::TransparencyType current = m_quarter->transparencyType();
+        const TransparencyType current = transparencyType();
         for (const TranspEntry& e : kTransparency) {
             QAction* a = tr_->addAction(QString::fromLatin1(e.name));
             a->setCheckable(true);
             a->setChecked(current == e.type);
             group->addAction(a);
-            const QuarterWidget::TransparencyType t = e.type;
-            connect(a, &QAction::triggered, this, [this, t] { m_quarter->setTransparencyType(t); });
+            const TransparencyType t = e.type;
+            connect(a, &QAction::triggered, this, [this, t] { setTransparencyType(t); });
         }
     }
 
@@ -1255,7 +1282,7 @@ void QuarterExaminerViewer::showPreferences()
     // Transparency
     auto* transp = new QComboBox;
     int curIdx = 0, idx = 0;
-    const QuarterWidget::TransparencyType cur = m_quarter->transparencyType();
+    const TransparencyType cur = transparencyType();
     for (const TranspEntry& e : kTransparency) {
         transp->addItem(QString::fromLatin1(e.name));
         if (e.type == cur)
@@ -1264,7 +1291,7 @@ void QuarterExaminerViewer::showPreferences()
     }
     transp->setCurrentIndex(curIdx);
     connect(transp, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, [this](int i) { m_quarter->setTransparencyType(kTransparency[i].type); });
+            this, [this](int i) { setTransparencyType(kTransparency[i].type); });
     form->addRow(tr("Transparency type:"), transp);
 
     // Headlight
